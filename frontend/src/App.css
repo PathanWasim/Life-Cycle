@@ -1,0 +1,5 @@
+/* App-level overrides — Vite boilerplate removed */
+#root {
+  min-height: 100vh;
+  isolation: isolate;
+}

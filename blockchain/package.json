@@ -1,0 +1,25 @@
+{
+  "name": "lifechain-blockchain",
+  "version": "1.0.0",
+  "description": "LifeChain Smart Contracts for Polygon Amoy Testnet",
+  "main": "index.js",
+  "scripts": {
+    "test": "hardhat test",
+    "compile": "hardhat compile",
+    "deploy": "hardhat run scripts/deploy.js --network amoy"
+  },
+  "keywords": [
+    "blockchain",
+    "smart-contracts",
+    "polygon",
+    "blood-supply"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "dotenv": "^16.3.1",
+    "ethers": "^6.16.0",
+    "hardhat": "^2.28.6"
+  }
+}

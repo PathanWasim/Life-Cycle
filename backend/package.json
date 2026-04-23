@@ -1,0 +1,40 @@
+{
+  "name": "lifechain-backend",
+  "version": "1.0.0",
+  "description": "LifeChain Blood Supply Management System - Backend API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "optimize-db": "node scripts/optimize-database-indexes.js",
+    "test-indexes": "node test-database-indexes.js",
+    "db:indexes": "npm run optimize-db",
+    "db:test": "npm run test-indexes"
+  },
+  "keywords": [
+    "blood",
+    "supply-chain",
+    "blockchain",
+    "healthcare"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.13.6",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "ethers": "^6.9.0",
+    "express": "^5.2.1",
+    "express-rate-limit": "^7.1.5",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.2.3",
+    "node-cron": "^4.2.1",
+    "nodemailer": "^6.9.7",
+    "pdfkit": "^0.17.2",
+    "qrcode": "^1.5.4",
+    "redis": "^4.6.0",
+    "uuid": "^13.0.0"
+  }
+}
