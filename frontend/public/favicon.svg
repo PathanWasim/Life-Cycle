@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <radialGradient id="bloodGrad" cx="40%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#EF4444"/>
+      <stop offset="100%" stop-color="#991B1B"/>
+    </radialGradient>
+  </defs>
+  <!-- Blood drop shape -->
+  <path d="M50 10 C50 10 20 45 20 62 C20 79 34 90 50 90 C66 90 80 79 80 62 C80 45 50 10 50 10Z"
+        fill="url(#bloodGrad)"
+        stroke="#7F1D1D"
+        stroke-width="2"/>
+  <!-- Shine highlight -->
+  <ellipse cx="40" cy="50" rx="7" ry="12" fill="rgba(255,255,255,0.25)" transform="rotate(-20 40 50)"/>
+</svg>
