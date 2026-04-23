@@ -11,8 +11,30 @@ const { initializeExpiryAlertScheduler } = require('./jobs/expiryAlerts');
 
 const app = express();
 
-// Connect to MongoDB
-connectDB();
+// Connect to MongoDB then seed admin user
+connectDB().then(async () => {
+  try {
+    const User = require('./models/User');
+    const bcrypt = require('bcryptjs');
+    const existing = await User.findOne({ role: 'Admin' });
+    if (!existing) {
+      const hash = await bcrypt.hash('Admin@123456', 12);
+      await User.create({
+        name: 'System Admin',
+        email: 'admin@lifechain.com',
+        password: hash,
+        role: 'Admin',
+        isVerified: true,
+        walletAddress: '0x0000000000000000000000000000000000000000'
+      });
+      console.log('✅ Admin user created: admin@lifechain.com / Admin@123456');
+    } else {
+      console.log('ℹ️  Admin user already exists');
+    }
+  } catch (err) {
+    console.error('⚠️  Admin seed error:', err.message);
+  }
+});
 
 // Initialize blockchain service
 blockchainService.initialize().catch(err => {
@@ -85,16 +107,16 @@ app.get('/api/health', async (req, res) => {
     uptime: Math.floor((Date.now() - startTime) / 1000), // seconds
     components: {}
   };
-  
+
   let allHealthy = true;
-  
+
   // Check MongoDB
   try {
     const mongoose = require('mongoose');
     const startMongo = Date.now();
     await mongoose.connection.db.admin().ping();
     const mongoTime = Date.now() - startMongo;
-    
+
     healthStatus.components.mongodb = {
       status: 'healthy',
       responseTime: `${mongoTime}ms`,
@@ -107,13 +129,13 @@ app.get('/api/health', async (req, res) => {
       error: error.message
     };
   }
-  
+
   // Check Blockchain RPC
   try {
     const startBlockchain = Date.now();
     const blockNumber = await blockchainService.provider.getBlockNumber();
     const blockchainTime = Date.now() - startBlockchain;
-    
+
     healthStatus.components.blockchain = {
       status: 'healthy',
       responseTime: `${blockchainTime}ms`,
@@ -128,7 +150,7 @@ app.get('/api/health', async (req, res) => {
       error: error.message
     };
   }
-  
+
   // Check AI Microservice
   try {
     const axios = require('axios');
@@ -136,7 +158,7 @@ app.get('/api/health', async (req, res) => {
     const startAI = Date.now();
     const aiResponse = await axios.get(`${AI_URL}/api/health`, { timeout: 5000 });
     const aiTime = Date.now() - startAI;
-    
+
     healthStatus.components.aiService = {
       status: 'healthy',
       responseTime: `${aiTime}ms`,
@@ -150,15 +172,15 @@ app.get('/api/health', async (req, res) => {
       error: error.message
     };
   }
-  
+
   // Check Redis Cache (optional - not critical)\r\n  try {\r\n    const cacheHealth = await cacheService.healthCheck();\r\n    healthStatus.components.redis = cacheHealth;\r\n    // Redis being unavailable is non-critical - app works without it\r\n  } catch (error) {\r\n    healthStatus.components.redis = {\r\n      status: 'unavailable',\r\n      message: 'Redis not configured - running without cache'\r\n    };\r\n  }
-  
+
   // Set overall status
   healthStatus.status = allHealthy ? 'healthy' : 'degraded';
-  
+
   // Return appropriate status code
   const statusCode = allHealthy ? 200 : 503;
-  
+
   res.status(statusCode).json({
     success: allHealthy,
     message: allHealthy ? 'All systems operational' : 'Some components are unhealthy',
@@ -196,7 +218,7 @@ app.use('/api/public', publicRoutes);
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error:', err.message);
-  
+
   res.status(err.statusCode || 500).json({
     success: false,
     message: err.message || 'Internal Server Error',
@@ -224,36 +246,36 @@ const server = app.listen(PORT, () => {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('🔄 SIGTERM received, shutting down gracefully...');
-  
+
   server.close(async () => {
     console.log('🔌 HTTP server closed');
-    
+
     // Disconnect cache service
     await cacheService.disconnect();
-    
+
     // Close database connection
     const mongoose = require('mongoose');
     await mongoose.connection.close();
     console.log('🔌 Database connection closed');
-    
+
     process.exit(0);
   });
 });
 
 process.on('SIGINT', async () => {
   console.log('🔄 SIGINT received, shutting down gracefully...');
-  
+
   server.close(async () => {
     console.log('🔌 HTTP server closed');
-    
+
     // Disconnect cache service
     await cacheService.disconnect();
-    
+
     // Close database connection
     const mongoose = require('mongoose');
     await mongoose.connection.close();
     console.log('🔌 Database connection closed');
-    
+
     process.exit(0);
   });
 });
