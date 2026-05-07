@@ -2,82 +2,91 @@ const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
   // Common fields for all users
-  email: { 
-    type: String, 
-    required: true, 
-    unique: true, 
+  email: {
+    type: String,
+    required: true,
+    unique: true,
     lowercase: true,
     trim: true
   },
-  password: { 
-    type: String, 
-    required: true 
+  password: {
+    type: String,
+    required: true
   },
-  role: { 
-    type: String, 
-    enum: ['Donor', 'Hospital', 'Admin'], 
-    required: true 
+  role: {
+    type: String,
+    enum: ['Donor', 'Hospital', 'Admin'],
+    required: true
   },
-  walletAddress: { 
-    type: String, 
-    required: true 
+  walletAddress: {
+    type: String,
+    required: true
   },
-  
+
   // Donor-specific fields
-  name: { 
-    type: String, 
-    required: function() { return this.role === 'Donor'; } 
+  name: {
+    type: String,
+    required: function () { return this.role === 'Donor'; }
   },
-  bloodGroup: { 
-    type: String, 
+  bloodGroup: {
+    type: String,
     enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
-    required: function() { return this.role === 'Donor'; }
+    required: function () { return this.role === 'Donor'; }
   },
-  dateOfBirth: { 
+  dateOfBirth: {
     type: Date,
-    required: function() { return this.role === 'Donor'; }
+    required: function () { return this.role === 'Donor'; }
   },
-  weight: { 
+  weight: {
     type: Number, // in kg
-    required: function() { return this.role === 'Donor'; }
+    required: function () { return this.role === 'Donor'; }
   },
-  city: { 
+  city: {
     type: String,
-    required: function() { return this.role === 'Donor' || this.role === 'Hospital'; }
+    required: function () { return this.role === 'Donor' || this.role === 'Hospital'; }
   },
-  pincode: { 
+  pincode: {
     type: String,
-    required: function() { return this.role === 'Donor' || this.role === 'Hospital'; }
+    required: function () { return this.role === 'Donor' || this.role === 'Hospital'; }
   },
-  lastDonationDate: { 
-    type: Date, 
-    default: null 
+  lastDonationDate: {
+    type: Date,
+    default: null
   },
-  eligibilityStatus: { 
-    type: String, 
-    default: 'Eligible' 
+  eligibilityStatus: {
+    type: String,
+    default: 'Eligible'
   },
-  
+  gender: {
+    type: String,
+    enum: ['Male', 'Female', 'Other', null],
+    default: null
+  },
+  phone: {
+    type: String,
+    default: null
+  },
+
   // Hospital-specific fields
-  hospitalName: { 
-    type: String, 
-    required: function() { return this.role === 'Hospital'; } 
+  hospitalName: {
+    type: String,
+    required: function () { return this.role === 'Hospital'; }
   },
-  isVerified: { 
-    type: Boolean, 
-    default: false 
+  isVerified: {
+    type: Boolean,
+    default: false
   },
-  
-  createdAt: { 
-    type: Date, 
-    default: Date.now 
+
+  createdAt: {
+    type: Date,
+    default: Date.now
   }
 }, {
   timestamps: true
 });
 
 // Virtual field for age calculation
-userSchema.virtual('age').get(function() {
+userSchema.virtual('age').get(function () {
   if (!this.dateOfBirth) return null;
   const today = new Date();
   const birthDate = new Date(this.dateOfBirth);
@@ -91,17 +100,17 @@ userSchema.virtual('age').get(function() {
 
 // Method to check donor eligibility
 // Requirements: Age 18-60, Weight ≥50kg, 56-day rule
-userSchema.methods.checkEligibility = function() {
+userSchema.methods.checkEligibility = function () {
   if (this.role !== 'Donor') return 'N/A';
-  
+
   // Check age (18-60 years)
   const age = this.age;
   if (!age || age < 18) return 'Ineligible - Age (Must be 18 or older)';
   if (age > 60) return 'Ineligible - Age (Must be 60 or younger)';
-  
+
   // Check weight (minimum 50kg)
   if (!this.weight || this.weight < 50) return 'Ineligible - Weight (Must be at least 50kg)';
-  
+
   // Check 56-day rule (must wait 56 days between donations)
   if (this.lastDonationDate) {
     const daysSinceLastDonation = Math.floor(
@@ -112,12 +121,12 @@ userSchema.methods.checkEligibility = function() {
       return `Ineligible - Must wait ${daysRemaining} more days (56-day rule)`;
     }
   }
-  
+
   return 'Eligible';
 };
 
 // Method to calculate days since last donation
-userSchema.methods.daysSinceLastDonation = function() {
+userSchema.methods.daysSinceLastDonation = function () {
   if (!this.lastDonationDate) return null;
   return Math.floor(
     (Date.now() - this.lastDonationDate.getTime()) / (1000 * 60 * 60 * 24)

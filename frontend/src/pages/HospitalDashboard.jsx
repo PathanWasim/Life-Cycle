@@ -1280,7 +1280,7 @@ const HospitalDashboard = () => {
                     >
                       <option value="">Select Hospital</option>
                       {hospitals.map(h => (
-                        <option key={h.hospitalID} value={h.hospitalID}>
+                        <option key={h._id} value={h._id}>
                           {h.hospitalName} - {h.city}
                         </option>
                       ))}

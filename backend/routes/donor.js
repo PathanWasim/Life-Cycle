@@ -17,20 +17,20 @@ router.get('/profile', auth, roleCheck(['Donor']), async (req, res) => {
   try {
     // Get donor from database
     const donor = await User.findById(req.user.id).select('-password');
-    
+
     if (!donor) {
       return res.status(404).json({
         success: false,
         message: 'Donor not found'
       });
     }
-    
+
     // Calculate eligibility status
     const eligibilityStatus = donor.checkEligibility();
-    
+
     // Calculate days since last donation
     const daysSinceLastDonation = donor.daysSinceLastDonation();
-    
+
     // Calculate next eligible donation date if currently ineligible
     let nextEligibleDate = null;
     if (donor.lastDonationDate && daysSinceLastDonation !== null && daysSinceLastDonation < 56) {
@@ -38,7 +38,7 @@ router.get('/profile', auth, roleCheck(['Donor']), async (req, res) => {
       nextEligibleDate = new Date(donor.lastDonationDate);
       nextEligibleDate.setDate(nextEligibleDate.getDate() + 56);
     }
-    
+
     // Prepare response
     const profile = {
       id: donor._id,
@@ -48,6 +48,8 @@ router.get('/profile', auth, roleCheck(['Donor']), async (req, res) => {
       age: donor.age,
       dateOfBirth: donor.dateOfBirth,
       weight: donor.weight,
+      gender: donor.gender || null,
+      phone: donor.phone || null,
       city: donor.city,
       pincode: donor.pincode,
       walletAddress: donor.walletAddress,
@@ -57,12 +59,12 @@ router.get('/profile', auth, roleCheck(['Donor']), async (req, res) => {
       nextEligibleDate: nextEligibleDate,
       createdAt: donor.createdAt
     };
-    
+
     res.status(200).json({
       success: true,
       data: profile
     });
-    
+
   } catch (error) {
     console.error('Error fetching donor profile:', error);
     res.status(500).json({
@@ -81,17 +83,17 @@ router.get('/profile', auth, roleCheck(['Donor']), async (req, res) => {
 router.get('/campaigns', auth, roleCheck(['Donor']), async (req, res) => {
   try {
     const { status, page = 1, limit = 10 } = req.query;
-    
+
     // Build query for participant records
     const query = { donorID: req.user.id };
-    
+
     if (status) {
       query.attendanceStatus = status;
     }
-    
+
     // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
+
     // Query participant records with campaign details
     const participants = await CampaignParticipant.find(query)
       .populate({
@@ -104,14 +106,14 @@ router.get('/campaigns', auth, roleCheck(['Donor']), async (req, res) => {
       .sort({ registrationDate: -1 })
       .skip(skip)
       .limit(parseInt(limit));
-    
+
     // Get total count for pagination
     const total = await CampaignParticipant.countDocuments(query);
-    
+
     // Format campaigns with participant info
     const formattedCampaigns = participants.map(participant => {
       const campaign = participant.campaignID;
-      
+
       return {
         campaignID: campaign.campaignID,
         title: campaign.title,
@@ -145,7 +147,7 @@ router.get('/campaigns', auth, roleCheck(['Donor']), async (req, res) => {
         daysUntilCampaign: Math.ceil((new Date(campaign.campaignDate) - new Date()) / (1000 * 60 * 60 * 24))
       };
     });
-    
+
     res.json({
       success: true,
       message: 'Registered campaigns retrieved successfully',
@@ -159,7 +161,7 @@ router.get('/campaigns', auth, roleCheck(['Donor']), async (req, res) => {
         }
       }
     });
-    
+
   } catch (error) {
     console.error('Error retrieving donor campaigns:', error);
     res.status(500).json({
@@ -184,7 +186,7 @@ router.get('/donations', auth, roleCheck(['Donor']), async (req, res) => {
       .populate('originalHospitalID', 'hospitalName city')
       .populate('currentHospitalID', 'hospitalName city')
       .sort({ collectionDate: -1 });
-    
+
     // Format donations
     const formattedDonations = donations.map(unit => ({
       bloodUnitID: unit.bloodUnitID,
@@ -202,11 +204,11 @@ router.get('/donations', auth, roleCheck(['Donor']), async (req, res) => {
       },
       usageDate: unit.usageDate,
       donationTxHash: unit.donationTxHash,
-      blockchainExplorerURL: unit.donationTxHash 
+      blockchainExplorerURL: unit.donationTxHash
         ? `https://amoy.polygonscan.com/tx/${unit.donationTxHash}`
         : null
     }));
-    
+
     res.json({
       success: true,
       message: 'Donation history retrieved successfully',
@@ -215,7 +217,7 @@ router.get('/donations', auth, roleCheck(['Donor']), async (req, res) => {
         total: formattedDonations.length
       }
     });
-    
+
   } catch (error) {
     console.error('Error retrieving donation history:', error);
     res.status(500).json({
@@ -234,39 +236,39 @@ router.get('/donations', auth, roleCheck(['Donor']), async (req, res) => {
 router.get('/certificate/:bloodUnitID', auth, roleCheck(['Donor']), async (req, res) => {
   try {
     const { bloodUnitID } = req.params;
-    
+
     console.log(`📄 Generating certificate for ${bloodUnitID}...`);
-    
+
     // Generate certificate PDF
     const pdfBuffer = await certificateService.generateCertificate(bloodUnitID, req.user.id);
-    
+
     // Set response headers for PDF download
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="LifeChain-Certificate-${bloodUnitID}.pdf"`);
     res.setHeader('Content-Length', pdfBuffer.length);
-    
+
     // Send PDF buffer
     res.send(pdfBuffer);
-    
+
     console.log(`✅ Certificate downloaded for ${bloodUnitID}`);
-    
+
   } catch (error) {
     console.error('Error generating certificate:', error);
-    
+
     if (error.message === 'Blood unit not found') {
       return res.status(404).json({
         success: false,
         message: 'Blood unit not found'
       });
     }
-    
+
     if (error.message === 'You do not have permission to download this certificate') {
       return res.status(403).json({
         success: false,
         message: 'You do not have permission to download this certificate'
       });
     }
-    
+
     res.status(500).json({
       success: false,
       message: 'Server error while generating certificate',
